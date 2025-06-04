@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -9,11 +10,17 @@ import (
 )
 
 type Activity struct {
-	Name     string
-	Duration time.Duration
-	Date     time.Time
+	Name     string        `json:"name"`
+	Duration time.Duration `json:"duration"`
+	Date     time.Time     `json:"date"`
 }
 
+/*
+	TODO:
+
+1. Turn Activity Log into a json file
+2.
+*/
 const fileName = "activity_log.csv"
 
 func main() {
@@ -58,7 +65,8 @@ func main() {
 						Date:     startTime,
 					}
 
-					saveActivity(activity)
+					// saveActivity(activity)
+					savActivityJson(activity)
 					fmt.Printf("Tracked activity '%s' for %s on %s.\n", activity.Name, activity.Duration, activity.Date.Format("2006-01-02"))
 					break
 				}
@@ -114,4 +122,53 @@ func saveActivity(activity Activity) {
 	}); err != nil {
 		fmt.Printf("Error writing activity: %v\n", err)
 	}
+}
+
+type SavedActivity struct {
+	Name     string `json:"name"`
+	Duration string `json:"duration"`
+	Date     string `json:"date"`
+}
+
+func savActivityJson(activity Activity) {
+	formattedActivity := SavedActivity{
+		Name:     activity.Name,
+		Duration: activity.Duration.String(),
+		Date:     activity.Date.Format("2006-01-02 15:04:05"),
+	}
+	// Read existing data
+	var activities []SavedActivity
+	data, err := os.ReadFile("output.json")
+	if err != nil {
+		if os.IsNotExist(err) {
+			// File doesn't exist, start with an empty slice
+			// people = []Person{}
+			activities = []SavedActivity{}
+		} else {
+			panic(err)
+		}
+	} else {
+		// Unmarshal existing JSON data
+		if err := json.Unmarshal(data, &activities); err != nil {
+			panic(err)
+		}
+	}
+
+	// Marshal data to JSON
+	activities = append(activities, formattedActivity)
+	jsonData, err := json.MarshalIndent(activities, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+
+	// Write to file
+	err = os.WriteFile("output.json", jsonData, 0644)
+	if err != nil {
+		panic(err)
+	}
+}
+func LoadActivities() []Activity {
+	// TODO: Load activities from a file
+
+	return []Activity{}
 }
